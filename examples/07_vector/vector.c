@@ -1,17 +1,11 @@
+#include "kernel_loader.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 
 #include <CL/cl.h>
 
-const char* kernel_code =
-    "__kernel void hello_kernel(__global int* input1, __global int* input2, __global int* output, int n) {\n"
-    "   if (get_global_id(0) < n) {\n"
-    "       output[get_global_id(0)] = input1[get_global_id(0)] + input2[get_global_id(0)];\n"
-    "   }\n"
-    "}\n"
-;
-
-const int SAMPLE_SIZE = 60000000;
+const int SAMPLE_SIZE = 100;
 
 int* generateVector()
 {
@@ -26,6 +20,7 @@ int main(void)
 {
     int i;
     cl_int err;
+	int error_code;
 
     // Get platform
     cl_uint n_platforms;
@@ -55,6 +50,11 @@ int main(void)
     cl_context context = clCreateContext(NULL, n_devices, &device_id, NULL, NULL, NULL);
 
     // Build the program
+	const char* kernel_code = load_kernel_source("kernels/sample.cl", &error_code);
+    if (error_code != 0) {
+        printf("Source code loading error!\n");
+        return 0;
+    }
     cl_program program = clCreateProgramWithSource(context, 1, &kernel_code, NULL, NULL);
     err = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
     if (err != CL_SUCCESS) {
@@ -147,7 +147,7 @@ int main(void)
         NULL
     );
 
-    for (i = 0; i < SAMPLE_SIZE; i+=1000000) {
+    for (i = 0; i < SAMPLE_SIZE; i+=1) {
         printf("A[%d] = %d, ", i, host_bufferA[i]);
 		printf("B[%d] = %d, ", i, host_bufferB[i]);
 		printf("C[%d] = %d ", i, host_bufferC[i]);
