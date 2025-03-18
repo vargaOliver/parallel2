@@ -2,16 +2,20 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
+#include <time.h>
 
 #include <CL/cl.h>
 
-const int SAMPLE_SIZE = 9;
+const int SAMPLE_SIZE = 1000000;
+const int PRINT_STEP = 1000;
 
 int* generateVector()
 {
 	int *toReturn = malloc(SAMPLE_SIZE * sizeof(int));
 	for (int i = 0; i < SAMPLE_SIZE; ++i) {
-		toReturn[i] = rand() % 100;
+		toReturn[i] = rand() % 10;
+		//toReturn[i] = i + 1;
 	}
 	return toReturn;
 }
@@ -19,8 +23,10 @@ int* generateVector()
 int main(void)
 {
     int i;
+	int j;
     cl_int err;
 	int error_code;
+	int sample_size_sqrt = (int)sqrt((double)SAMPLE_SIZE);
 
     // Get platform
     cl_uint n_platforms;
@@ -59,6 +65,28 @@ int main(void)
     err = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
     if (err != CL_SUCCESS) {
         printf("Build error! Code: %d\n", err);
+        size_t real_size;
+        err = clGetProgramBuildInfo(
+            program,
+            device_id,
+            CL_PROGRAM_BUILD_LOG,
+            0,
+            NULL,
+            &real_size
+        );
+        char* build_log = (char*)malloc(sizeof(char) * (real_size + 1));
+        err = clGetProgramBuildInfo(
+            program,
+            device_id,
+            CL_PROGRAM_BUILD_LOG,
+            real_size + 1,
+            build_log,
+            &real_size
+        );
+        // build_log[real_size] = 0;
+        printf("Real size : %d\n", real_size);
+        printf("Build log : %s\n", build_log);
+        free(build_log);
         return 0;
     }
     cl_kernel kernel = clCreateKernel(program, "hello_kernel", NULL);
@@ -67,6 +95,7 @@ int main(void)
     int* host_bufferA = (int*)malloc(SAMPLE_SIZE * sizeof(int));
 	int* host_bufferB = (int*)malloc(SAMPLE_SIZE * sizeof(int));
 	int* host_bufferC = (int*)malloc(SAMPLE_SIZE * sizeof(int));
+	int* host_bufferD = (int*)malloc(SAMPLE_SIZE * sizeof(int));
 	
 	int *vectorA = generateVector();
 	int *vectorB = generateVector();
@@ -117,10 +146,12 @@ int main(void)
     );
 
     // Size specification
-    size_t local_work_size = 256;
+    size_t local_work_size = 512;
     size_t n_work_groups = (SAMPLE_SIZE + local_work_size + 1) / local_work_size;
     size_t global_work_size = n_work_groups * local_work_size;
-
+	
+	clock_t t0 = clock();
+	
     // Apply the kernel on the range
     clEnqueueNDRangeKernel(
         command_queue,
@@ -146,14 +177,50 @@ int main(void)
         NULL,
         NULL
     );
-
-    for (i = 0; i < SAMPLE_SIZE; i+=1) {
-        printf("A[%d] = %d, ", i, host_bufferA[i]);
-		printf("B[%d] = %d, ", i, host_bufferB[i]);
-		printf("C[%d] = %d ", i, host_bufferC[i]);
+	clock_t t1 = clock();
+	double time = (double)(t1 - t0) / (double)CLOCKS_PER_SEC;
+	printf("Parallel time: %f sec\n", time);
+	
+	t0 = clock();
+	for (i = 0; i < SAMPLE_SIZE; i+=1) {
+		host_bufferD[i] = 0;
+        for (j = 0; j < sample_size_sqrt; j+=1) {
+			host_bufferD[i] += host_bufferA[i / sample_size_sqrt * sample_size_sqrt + j] * host_bufferB[i % sample_size_sqrt + j * sample_size_sqrt];
+		}
+	}
+	t1 = clock();
+	time = (double)(t1 - t0) / (double)CLOCKS_PER_SEC;
+	printf("Sequential time: %f sec\n", time);
+	/*
+    for (i = 0; i < sample_size_sqrt; i+=1) {
+        for (j = 0; j < sample_size_sqrt; j+=PRINT_STEP) {
+			printf("A[%d] = %d, ", i * sample_size_sqrt + j, host_bufferA[i * sample_size_sqrt + j]);
+		}
 		printf("\n");
     }
-
+	printf("\n");
+	for (i = 0; i < sample_size_sqrt; i+=1) {
+        for (j = 0; j < sample_size_sqrt; j+=PRINT_STEP) {
+			printf("B[%d] = %d, ", i * sample_size_sqrt + j, host_bufferB[i * sample_size_sqrt + j]);
+		}
+		printf("\n");
+    }
+	*/
+	printf("\n");
+	for (i = 0; i < sample_size_sqrt; i+=1) {
+        for (j = 0; j < sample_size_sqrt; j+=PRINT_STEP) {
+			printf("C[%d] = %d, ", i * sample_size_sqrt + j, host_bufferC[i * sample_size_sqrt + j]);
+		}
+		printf("\n");
+    }
+	printf("\n");
+	for (i = 0; i < sample_size_sqrt; i+=1) {
+        for (j = 0; j < sample_size_sqrt; j+=PRINT_STEP) {
+			printf("D[%d] = %d, ", i * sample_size_sqrt + j, host_bufferD[i * sample_size_sqrt + j]);
+		}
+		printf("\n");
+    }
+	printf("\n");
     // Release the resources
     clReleaseKernel(kernel);
     clReleaseProgram(program);
