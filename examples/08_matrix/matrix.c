@@ -7,8 +7,8 @@
 
 #include <CL/cl.h>
 
-const int SAMPLE_SIZE = 1000000;
-const int PRINT_STEP = 1000;
+const int SAMPLE_SIZE = 62500;
+const int PRINT_STEP = 100;
 
 int* generateVector()
 {
@@ -146,7 +146,7 @@ int main(void)
     );
 
     // Size specification
-    size_t local_work_size = 512;
+    size_t local_work_size = 128;
     size_t n_work_groups = (SAMPLE_SIZE + local_work_size + 1) / local_work_size;
     size_t global_work_size = n_work_groups * local_work_size;
 	
@@ -185,7 +185,8 @@ int main(void)
 	for (i = 0; i < SAMPLE_SIZE; i+=1) {
 		host_bufferD[i] = 0;
         for (j = 0; j < sample_size_sqrt; j+=1) {
-			host_bufferD[i] += host_bufferA[i / sample_size_sqrt * sample_size_sqrt + j] * host_bufferB[i % sample_size_sqrt + j * sample_size_sqrt];
+			//host_bufferD[i] += host_bufferA[i / sample_size_sqrt * sample_size_sqrt + j] * host_bufferB[i % sample_size_sqrt + j * sample_size_sqrt];
+			host_bufferD[i] = host_bufferB[i % sample_size_sqrt + j * sample_size_sqrt];
 		}
 	}
 	t1 = clock();
@@ -230,4 +231,5 @@ int main(void)
     free(host_bufferA);
 	free(host_bufferB);
 	free(host_bufferC);
+	free(host_bufferD);
 }
