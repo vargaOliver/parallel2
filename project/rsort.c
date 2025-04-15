@@ -8,13 +8,30 @@
 #include <CL/cl.h>
 
 const int SAMPLE_SIZE = 100;
-const int ARRAY_SIZE = 12;
+const int ARRAY_SIZE = 10;
+
+int newRandom(unsigned long seed)
+{
+	seed = (seed * 0x5DEECE66DL + 0xBL) & ((1L << 48) - 1);
+	unsigned int result = seed >> 16;
+	return result;
+}
+
+int newRandom2(unsigned long seedA, unsigned long seedB)
+{
+	unsigned int seed = seedA + 1; // + global_id
+	unsigned int t = seed ^ (seed << 11);  
+	unsigned int result = seedB ^ (seedB >> 19) ^ (t ^ (t >> 8));
+	return abs(result);
+}
 
 int* generateVector()
 {
 	int *toReturn = malloc(ARRAY_SIZE * sizeof(int));
+	//int offset = rand() % 1000;
 	for (int i = 0; i < ARRAY_SIZE; ++i) {
-		toReturn[i] = rand() % 100;
+		//toReturn[i] = rand() % 100;
+		toReturn[i] = newRandom2(0, i) % 10;
 	}
 	return toReturn;
 }
@@ -62,7 +79,9 @@ int main(void)
         return 0;
     }
     cl_program program = clCreateProgramWithSource(context, 1, &kernel_code, NULL, NULL);
-    err = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
+	char options[100];
+	sprintf(options, "-D ARRAY_SIZE=%d", ARRAY_SIZE);
+    err = clBuildProgram(program, 0, NULL, options, NULL, NULL);
     if (err != CL_SUCCESS) {
         printf("Build error! Code: %d\n", err);
         size_t real_size;
@@ -103,15 +122,21 @@ int main(void)
         host_bufferA[i] = vectorA[i];
 		host_bufferC[i] = vectorC[i];
     }
+	for (i = 0; i < ARRAY_SIZE; i+=1) {
+		host_bufferB[i] = 0;
+		printf("%d, ", host_bufferC[i]);
+	}
+	printf("\n\n");
 
     // Create the device buffers
-    cl_mem device_bufferA = clCreateBuffer(context, CL_MEM_READ_WRITE, SAMPLE_SIZE * sizeof(int), NULL, NULL);
-	cl_mem device_bufferB = clCreateBuffer(context, CL_MEM_READ_WRITE, SAMPLE_SIZE * sizeof(int), NULL, NULL);
+    cl_mem device_bufferA = clCreateBuffer(context, CL_MEM_READ_WRITE, ARRAY_SIZE * sizeof(int), NULL, NULL);
+	cl_mem device_bufferB = clCreateBuffer(context, CL_MEM_READ_WRITE, ARRAY_SIZE * sizeof(int), NULL, NULL);
 
     // Set kernel arguments
+	i = 0;
     clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&device_bufferA);
 	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&device_bufferB);
-    clSetKernelArg(kernel, 2, sizeof(int), (void*)&ARRAY_SIZE);
+    clSetKernelArg(kernel, 2, sizeof(int), (void*)&i);
 
     // Create the command queue
     cl_command_queue command_queue = clCreateCommandQueue(context, device_id, NULL, NULL);
@@ -122,7 +147,7 @@ int main(void)
         device_bufferA,
         CL_FALSE,
         0,
-        SAMPLE_SIZE * sizeof(int),
+        ARRAY_SIZE * sizeof(int),
         host_bufferA,
         0,
         NULL,
@@ -134,13 +159,13 @@ int main(void)
         device_bufferB,
         CL_FALSE,
         0,
-        SAMPLE_SIZE * sizeof(int),
+        ARRAY_SIZE * sizeof(int),
         host_bufferB,
         0,
         NULL,
         NULL
     );
-
+	
     // Size specification
     size_t local_work_size = 128;
     size_t n_work_groups = (SAMPLE_SIZE + local_work_size + 1) / local_work_size;
@@ -167,7 +192,7 @@ int main(void)
         device_bufferB,
         CL_TRUE,
         0,
-        SAMPLE_SIZE * sizeof(int),
+        ARRAY_SIZE * sizeof(int),
         host_bufferB,
         0,
         NULL,
@@ -175,16 +200,15 @@ int main(void)
     );
 	clock_t t1 = clock();
 	double time = (double)(t1 - t0) / (double)CLOCKS_PER_SEC;
-	//printf("Parallel time: %f sec\n", time);
-	
+	printf("Parallel time: %f sec\n\n", time);
 	for (i = 0; i < ARRAY_SIZE; i+=1) {
-		printf("%d, ", host_bufferC[i]);
+		printf("%d, ", host_bufferB[i]);
 	}
-	printf("\n");
+	printf("\n\n");
 	
 	t0 = clock();
 	int *temp = (int*)malloc(ARRAY_SIZE * sizeof(int));
-	//int *indeces = (int*)malloc(ARRAY_SIZE * sizeof(int));
+
     for (i = 0; i < ARRAY_SIZE; i++) {
 		temp[i] = host_bufferC[i];
     }
@@ -193,32 +217,7 @@ int main(void)
 	int sorted = 0;
 	int attempt = 0;
 	int temp_element = 0;
-	/*
-	do {
-		for (i = 0; i < ARRAY_SIZE; i+=1) {
-			do {
-				randomindex = rand() % ARRAY_SIZE;
-				temp[i] = host_bufferC[randomindex];
-			} while (indeces[randomindex] == 1);
-			indeces[randomindex] = 1;
-		}
-		//for (i = 0; i < ARRAY_SIZE; i+=1) {
-		//	printf("%d, ", temp[i]);
-		//}
-		//printf("\n");
-		sorted = 1;
-		for (i = 0; i < ARRAY_SIZE - 1; i+=1) {
-			if (temp[i] > temp[i + 1]) {
-				sorted = 0;
-				break;
-			}
-		}
-		for (i = 0; i < ARRAY_SIZE; i+=1) {
-			indeces[i] = 0;
-		}
-		attempt++;
-	} while (sorted == 0);
-	*/
+
 	do {
 		randomindex1 = rand() % ARRAY_SIZE;
 		randomindex2 = rand() % ARRAY_SIZE;
