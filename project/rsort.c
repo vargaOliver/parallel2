@@ -167,9 +167,9 @@ int main(void)
     );
 	
     // Size specification
-    size_t local_work_size = 128;
-    size_t n_work_groups = (SAMPLE_SIZE + local_work_size + 1) / local_work_size;
-    size_t global_work_size = n_work_groups * local_work_size;
+    size_t local_work_size[1] = {1};
+    //size_t n_work_groups = (SAMPLE_SIZE + local_work_size + 1) / local_work_size;
+	size_t global_work_size[1] = {SAMPLE_SIZE};
 	
 	clock_t t0 = clock();
 	
@@ -179,12 +179,14 @@ int main(void)
         kernel,
         1,
         NULL,
-        &global_work_size,
-        &local_work_size,
+        global_work_size,
+        local_work_size,
         0,
         NULL,
         NULL
     );
+	
+	clFinish(command_queue);
 
     // Host buffer <- Device buffer
     clEnqueueReadBuffer(

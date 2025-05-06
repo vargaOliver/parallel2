@@ -15,6 +15,7 @@ __kernel void hello_kernel(__global int* input1, __global int* output, int finis
 		for (i = 0; i < ARRAY_SIZE; i++) {
 			temp[i] = input1[i];
 		}
+		
 		int randomindex1 = 0;
 		int randomindex2 = 0;
 		int sorted = 0;
@@ -23,23 +24,28 @@ __kernel void hello_kernel(__global int* input1, __global int* output, int finis
 
 		do {
 			randomindex1 = newRandom2(get_global_id(0), attempt) % ARRAY_SIZE;
-			randomindex2 = newRandom2(get_global_id(0), attempt) % ARRAY_SIZE;
+			randomindex2 = newRandom2(get_global_id(0) + 1, attempt) % ARRAY_SIZE;
 			
 			temp_element = temp[randomindex1];
 			temp[randomindex1] = temp[randomindex2];
 			temp[randomindex2] = temp_element;
 			
 			sorted = 1;
-			for (i = 0; i < ARRAY_SIZE - 1; i+=1) {
+			
+			for (i = 0; i < ARRAY_SIZE - 1; i++) {
 				if (temp[i] > temp[i + 1]) {
 					sorted = 0;
 					break;
 				}
 			}
+			
 			attempt++;
 		} while (sorted == 0 && finished == 0);
-		for (i = 0; i < ARRAY_SIZE; i++) {
-			output[i] = temp[i];
+		
+		if (finished == 0) {
+			for (i = 0; i < ARRAY_SIZE; i++) {
+				output[i] = temp[i];
+			}
+			finished = 1;
 		}
-		finished = 1;
     }
