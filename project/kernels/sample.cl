@@ -40,7 +40,7 @@ __kernel void hello_kernel(__global int* input1, __global int* output, __global 
 			}
 			
 			attempt++;
-		} while (sorted == 0 && finished == 0);
+		} while (sorted == 0 && atomic_load(finished) == 0);
 		
 		if (atomic_load(finished) == 0) {
 			for (i = 0; i < ARRAY_SIZE; i++) {

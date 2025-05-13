@@ -80,7 +80,7 @@ int main(void)
     }
     cl_program program = clCreateProgramWithSource(context, 1, &kernel_code, NULL, NULL);
 	char options[100];
-	sprintf(options, "-D ARRAY_SIZE=%d", ARRAY_SIZE);
+	sprintf(options, "-D ARRAY_SIZE=%d -cl-std=CL2.0", ARRAY_SIZE);
     err = clBuildProgram(program, 0, NULL, options, NULL, NULL);
     if (err != CL_SUCCESS) {
         printf("Build error! Code: %d\n", err);
