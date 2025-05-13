@@ -7,7 +7,7 @@ int newRandom2(unsigned long seedA, unsigned long seedB)
 }
 
 
-__kernel void hello_kernel(__global int* input1, __global int* output, int finished)
+__kernel void hello_kernel(__global int* input1, __global int* output, __global atomic_int* finished)
 	{
 		int i = 0;
 		int temp[ARRAY_SIZE];
@@ -23,8 +23,8 @@ __kernel void hello_kernel(__global int* input1, __global int* output, int finis
 		int temp_element = 0;
 
 		do {
-			randomindex1 = newRandom2(get_global_id(0), attempt) % ARRAY_SIZE;
-			randomindex2 = newRandom2(get_global_id(0) + 1, attempt) % ARRAY_SIZE;
+			randomindex1 = newRandom2(attempt, attempt) % ARRAY_SIZE;
+			randomindex2 = newRandom2(attempt, randomindex1) % ARRAY_SIZE;
 			
 			temp_element = temp[randomindex1];
 			temp[randomindex1] = temp[randomindex2];
@@ -42,10 +42,10 @@ __kernel void hello_kernel(__global int* input1, __global int* output, int finis
 			attempt++;
 		} while (sorted == 0 && finished == 0);
 		
-		if (finished == 0) {
+		if (atomic_load(finished) == 0) {
 			for (i = 0; i < ARRAY_SIZE; i++) {
 				output[i] = temp[i];
 			}
-			finished = 1;
+			atomic_store(finished, 1);
 		}
     }

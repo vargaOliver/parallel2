@@ -30,8 +30,8 @@ int* generateVector()
 	int *toReturn = malloc(ARRAY_SIZE * sizeof(int));
 	//int offset = rand() % 1000;
 	for (int i = 0; i < ARRAY_SIZE; ++i) {
-		//toReturn[i] = rand() % 100;
-		toReturn[i] = newRandom2(0, i) % 10;
+		toReturn[i] = rand() % 10;
+		//toReturn[i] = newRandom2(0, i) % 10;
 	}
 	return toReturn;
 }
@@ -221,8 +221,8 @@ int main(void)
 	int temp_element = 0;
 
 	do {
-		randomindex1 = rand() % ARRAY_SIZE;
-		randomindex2 = rand() % ARRAY_SIZE;
+		randomindex1 = newRandom2(attempt, attempt) % ARRAY_SIZE;
+		randomindex2 = newRandom2(attempt, randomindex1) % ARRAY_SIZE;
 		
 		temp_element = temp[randomindex1];
 		temp[randomindex1] = temp[randomindex2];
