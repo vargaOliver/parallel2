@@ -115,15 +115,16 @@ int main(void)
 	int* host_bufferB = (int*)malloc(ARRAY_SIZE * sizeof(int));
 	int* host_bufferC = (int*)malloc(ARRAY_SIZE * sizeof(int));
 	
-	int *vectorA = generateVector();
-	int *vectorC = generateVector();
+	//int *vectorA = generateVector();
+	int vectorA[] = {7, 9, 8, 3, 7, 5, 4, 6, 4, 7};
+	//int *vectorC = generateVector();
 	
     for (i = 0; i < ARRAY_SIZE; ++i) {
         host_bufferA[i] = vectorA[i];
-		host_bufferC[i] = vectorC[i];
+		host_bufferC[i] = vectorA[i];
     }
 	for (i = 0; i < ARRAY_SIZE; i+=1) {
-		host_bufferB[i] = 0;
+		host_bufferB[i] = 8;
 		printf("%d, ", host_bufferC[i]);
 	}
 	printf("\n\n");
@@ -174,7 +175,7 @@ int main(void)
 	clock_t t0 = clock();
 	
     // Apply the kernel on the range
-    clEnqueueNDRangeKernel(
+    err = clEnqueueNDRangeKernel(
         command_queue,
         kernel,
         1,
@@ -185,6 +186,9 @@ int main(void)
         NULL,
         NULL
     );
+	if (err != CL_SUCCESS) {
+		printf("\nKernel error: %d", err);
+	}
 	
 	clFinish(command_queue);
 
@@ -221,8 +225,8 @@ int main(void)
 	int temp_element = 0;
 
 	do {
-		randomindex1 = newRandom2(attempt, attempt) % ARRAY_SIZE;
-		randomindex2 = newRandom2(attempt, randomindex1) % ARRAY_SIZE;
+		randomindex1 = abs(newRandom2(attempt, attempt)) % ARRAY_SIZE;
+		randomindex2 = abs(newRandom2(attempt, randomindex1)) % ARRAY_SIZE;
 		
 		temp_element = temp[randomindex1];
 		temp[randomindex1] = temp[randomindex2];
