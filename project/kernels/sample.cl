@@ -7,7 +7,7 @@ int newRandom2(unsigned long seedA, unsigned long seedB)
 }
 
 
-__kernel void hello_kernel(__global const int* input1, __global int* output, __global int* finished)
+__kernel void hello_kernel(__global const int* input1, __global int* output, volatile __global atomic_int* finished)
 	{
 		int i = 0;
 		int temp[ARRAY_SIZE];
@@ -16,8 +16,6 @@ __kernel void hello_kernel(__global const int* input1, __global int* output, __g
 		for (i = 0; i < ARRAY_SIZE; i++) {
 			temp[i] = input1[i];
 		}
-		
-		//*finished = 0;
 		
 		int randomindex1 = 0;
 		int randomindex2 = 0;
@@ -29,15 +27,6 @@ __kernel void hello_kernel(__global const int* input1, __global int* output, __g
 		do {
 			randomindex1 = abs(newRandom2(attempt, global_id)) % ARRAY_SIZE;
 			randomindex2 = abs(newRandom2(attempt, randomindex1)) % ARRAY_SIZE;
-			/*
-			if (randomindex1 < 0 || randomindex1 >= ARRAY_SIZE) {
-				output[0] = 1234;
-				output[1] = randomindex1;
-				output[2] = global_id;
-				output[3] = attempt;
-				return;
-			}
-			*/
 			temp_element = temp[randomindex1];
 			temp[randomindex1] = temp[randomindex2];
 			temp[randomindex2] = temp_element;
@@ -51,13 +40,26 @@ __kernel void hello_kernel(__global const int* input1, __global int* output, __g
 				}
 			}
 			
+			if (sorted == 1) {
+				atomic_store(finished, 1);
+				output[ARRAY_SIZE] = output[ARRAY_SIZE] + 1;
+			
+				for (i = 0; i < ARRAY_SIZE; i++) {
+					output[i] = temp[i];
+				}
+			}
+			
+			/*
+			if (sorted == 1) {
+				if (atomic_cmpxchg(finished, 0, 1) == 0) {
+					output[ARRAY_SIZE] = 1;
+					for (i = 0; i < ARRAY_SIZE; i++) {
+						output[i] = temp[i];
+					}
+				}
+			}
+			*/
+			
 			attempt++;
-		} while (sorted == 0);
-		
-		//*finished = 1;
-		
-		for (i = 0; i < ARRAY_SIZE; i++) {
-			output[i] = temp[i];
-		}
-
+		} while (sorted == 0 && atomic_load(finished) == 0);
     }

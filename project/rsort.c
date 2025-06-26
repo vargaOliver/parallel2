@@ -8,7 +8,7 @@
 #include <CL/cl.h>
 
 const int SAMPLE_SIZE = 100;
-const int ARRAY_SIZE = 10;
+const int ARRAY_SIZE = 14;
 
 int newRandom(unsigned long seed)
 {
@@ -40,6 +40,7 @@ int main(void)
 {
     int i;
 	int j;
+	int zero = 0;
     cl_int err;
 	int error_code;
 	int sample_size_sqrt = (int)sqrt((double)SAMPLE_SIZE);
@@ -112,11 +113,11 @@ int main(void)
 
     // Create the host buffer and initialize it
     int* host_bufferA = (int*)malloc(ARRAY_SIZE * sizeof(int));
-	int* host_bufferB = (int*)malloc(ARRAY_SIZE * sizeof(int));
+	int* host_bufferB = (int*)malloc((ARRAY_SIZE+1) * sizeof(int));
 	int* host_bufferC = (int*)malloc(ARRAY_SIZE * sizeof(int));
 	
-	//int *vectorA = generateVector();
-	int vectorA[] = {7, 9, 8, 3, 7, 5, 4, 6, 4, 7};
+	int *vectorA = generateVector();
+	//int vectorA[] = {7, 9, 8, 3, 7, 5, 4, 6, 4, 7};
 	//int *vectorC = generateVector();
 	
     for (i = 0; i < ARRAY_SIZE; ++i) {
@@ -127,17 +128,19 @@ int main(void)
 		host_bufferB[i] = 8;
 		printf("%d, ", host_bufferC[i]);
 	}
+	host_bufferB[ARRAY_SIZE] = 123;
 	printf("\n\n");
 
     // Create the device buffers
     cl_mem device_bufferA = clCreateBuffer(context, CL_MEM_READ_WRITE, ARRAY_SIZE * sizeof(int), NULL, NULL);
-	cl_mem device_bufferB = clCreateBuffer(context, CL_MEM_READ_WRITE, ARRAY_SIZE * sizeof(int), NULL, NULL);
+	cl_mem device_bufferB = clCreateBuffer(context, CL_MEM_READ_WRITE, (ARRAY_SIZE+1) * sizeof(int), NULL, NULL);
+	cl_mem finish_flag = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(int), NULL, NULL);
 
     // Set kernel arguments
 	i = 0;
     clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&device_bufferA);
 	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&device_bufferB);
-    clSetKernelArg(kernel, 2, sizeof(int), (void*)&i);
+    clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&finish_flag);
 
     // Create the command queue
     cl_command_queue command_queue = clCreateCommandQueue(context, device_id, NULL, NULL);
@@ -160,8 +163,20 @@ int main(void)
         device_bufferB,
         CL_FALSE,
         0,
-        ARRAY_SIZE * sizeof(int),
+        (ARRAY_SIZE+1) * sizeof(int),
         host_bufferB,
+        0,
+        NULL,
+        NULL
+    );
+	
+	clEnqueueWriteBuffer(
+        command_queue,
+        finish_flag,
+        CL_FALSE,
+        0,
+        sizeof(int),
+        &zero,
         0,
         NULL,
         NULL
@@ -198,7 +213,7 @@ int main(void)
         device_bufferB,
         CL_TRUE,
         0,
-        ARRAY_SIZE * sizeof(int),
+        (ARRAY_SIZE+1) * sizeof(int),
         host_bufferB,
         0,
         NULL,
@@ -210,6 +225,7 @@ int main(void)
 	for (i = 0; i < ARRAY_SIZE; i+=1) {
 		printf("%d, ", host_bufferB[i]);
 	}
+	printf("%d, ", host_bufferB[ARRAY_SIZE]);
 	printf("\n\n");
 	
 	t0 = clock();
