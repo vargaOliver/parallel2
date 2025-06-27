@@ -42,23 +42,11 @@ __kernel void hello_kernel(__global const int* input1, __global int* output, vol
 			
 			if (sorted == 1) {
 				atomic_store(finished, 1);
-				output[ARRAY_SIZE] = output[ARRAY_SIZE] + 1;
 			
 				for (i = 0; i < ARRAY_SIZE; i++) {
 					output[i] = temp[i];
 				}
 			}
-			
-			/*
-			if (sorted == 1) {
-				if (atomic_cmpxchg(finished, 0, 1) == 0) {
-					output[ARRAY_SIZE] = 1;
-					for (i = 0; i < ARRAY_SIZE; i++) {
-						output[i] = temp[i];
-					}
-				}
-			}
-			*/
 			
 			attempt++;
 		} while (sorted == 0 && atomic_load(finished) == 0);

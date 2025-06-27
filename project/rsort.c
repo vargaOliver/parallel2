@@ -8,7 +8,7 @@
 #include <CL/cl.h>
 
 const int SAMPLE_SIZE = 100;
-const int ARRAY_SIZE = 14;
+const int ARRAY_SIZE = 12;
 
 int newRandom(unsigned long seed)
 {
@@ -113,7 +113,7 @@ int main(void)
 
     // Create the host buffer and initialize it
     int* host_bufferA = (int*)malloc(ARRAY_SIZE * sizeof(int));
-	int* host_bufferB = (int*)malloc((ARRAY_SIZE+1) * sizeof(int));
+	int* host_bufferB = (int*)malloc(ARRAY_SIZE * sizeof(int));
 	int* host_bufferC = (int*)malloc(ARRAY_SIZE * sizeof(int));
 	
 	int *vectorA = generateVector();
@@ -133,7 +133,7 @@ int main(void)
 
     // Create the device buffers
     cl_mem device_bufferA = clCreateBuffer(context, CL_MEM_READ_WRITE, ARRAY_SIZE * sizeof(int), NULL, NULL);
-	cl_mem device_bufferB = clCreateBuffer(context, CL_MEM_READ_WRITE, (ARRAY_SIZE+1) * sizeof(int), NULL, NULL);
+	cl_mem device_bufferB = clCreateBuffer(context, CL_MEM_READ_WRITE, ARRAY_SIZE * sizeof(int), NULL, NULL);
 	cl_mem finish_flag = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(int), NULL, NULL);
 
     // Set kernel arguments
@@ -163,7 +163,7 @@ int main(void)
         device_bufferB,
         CL_FALSE,
         0,
-        (ARRAY_SIZE+1) * sizeof(int),
+        ARRAY_SIZE * sizeof(int),
         host_bufferB,
         0,
         NULL,
@@ -213,7 +213,7 @@ int main(void)
         device_bufferB,
         CL_TRUE,
         0,
-        (ARRAY_SIZE+1) * sizeof(int),
+        ARRAY_SIZE * sizeof(int),
         host_bufferB,
         0,
         NULL,
@@ -225,7 +225,6 @@ int main(void)
 	for (i = 0; i < ARRAY_SIZE; i+=1) {
 		printf("%d, ", host_bufferB[i]);
 	}
-	printf("%d, ", host_bufferB[ARRAY_SIZE]);
 	printf("\n\n");
 	
 	t0 = clock();
@@ -241,8 +240,8 @@ int main(void)
 	int temp_element = 0;
 
 	do {
-		randomindex1 = abs(newRandom2(attempt, attempt)) % ARRAY_SIZE;
-		randomindex2 = abs(newRandom2(attempt, randomindex1)) % ARRAY_SIZE;
+		randomindex1 = abs(newRandom2(abs(attempt), abs(attempt))) % ARRAY_SIZE;
+		randomindex2 = abs(newRandom2(abs(attempt), randomindex1)) % ARRAY_SIZE;
 		
 		temp_element = temp[randomindex1];
 		temp[randomindex1] = temp[randomindex2];
